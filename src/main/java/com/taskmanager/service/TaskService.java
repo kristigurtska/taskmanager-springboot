@@ -1,5 +1,6 @@
 package com.taskmanager.service;
 
+import com.taskmanager.exception.TaskNotFoundException;
 import com.taskmanager.model.Task;
 import com.taskmanager.repository.TaskRepository;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,8 @@ public class TaskService {
     }
 
     public Task getTaskById(Long id) {
-        return taskRepository.findById(id).orElseThrow();
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new TaskNotFoundException(id));
     }
 
     public Task createTask(Task task) {
@@ -28,11 +30,15 @@ public class TaskService {
     }
 
     public void deleteTask(Long id) {
+        taskRepository.findById(id)
+                .orElseThrow(() -> new TaskNotFoundException(id));
         taskRepository.deleteById(id);
     }
 
+
     public Task updateTask(Long id, Task updatedTask) {
-        Task existingTask = taskRepository.findById(id).orElseThrow();
+        Task existingTask = taskRepository.findById(id)
+                .orElseThrow(() -> new TaskNotFoundException(id));
         existingTask.setTitle(updatedTask.getTitle());
         existingTask.setDescription(updatedTask.getDescription());
         existingTask.setCompleted(updatedTask.isCompleted());
