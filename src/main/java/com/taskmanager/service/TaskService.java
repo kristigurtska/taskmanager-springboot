@@ -1,11 +1,14 @@
 package com.taskmanager.service;
 
+import com.taskmanager.dto.TaskRequestDTO;
+import com.taskmanager.dto.TaskResponseDTO;
 import com.taskmanager.exception.TaskNotFoundException;
 import com.taskmanager.model.Task;
 import com.taskmanager.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class TaskService {
@@ -16,17 +19,31 @@ public class TaskService {
         this.taskRepository = taskRepository;
     }
 
-    public List<Task> getAllTasks() {
-        return taskRepository.findAll();
+    public List<TaskResponseDTO> getAllTasks() {
+        return taskRepository.findAll()
+                .stream()
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public Task getTaskById(Long id) {
-        return taskRepository.findById(id)
+    public TaskResponseDTO getTaskById(Long id) {
+        Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new TaskNotFoundException(id));
+        return convertToResponseDTO(task);
     }
 
-    public Task createTask(Task task) {
-        return taskRepository.save(task);
+    public TaskResponseDTO createTask(TaskRequestDTO requestDTO) {
+        Task task = convertToEntity(requestDTO);
+        return convertToResponseDTO(taskRepository.save(task));
+    }
+
+    public TaskResponseDTO updateTask(Long id, TaskRequestDTO requestDTO) {
+        Task existingTask = taskRepository.findById(id)
+                .orElseThrow(() -> new TaskNotFoundException(id));
+        existingTask.setTitle(requestDTO.getTitle());
+        existingTask.setDescription(requestDTO.getDescription());
+        existingTask.setCompleted(requestDTO.isCompleted());
+        return convertToResponseDTO(taskRepository.save(existingTask));
     }
 
     public void deleteTask(Long id) {
@@ -35,13 +52,20 @@ public class TaskService {
         taskRepository.deleteById(id);
     }
 
+    private TaskResponseDTO convertToResponseDTO(Task task) {
+        TaskResponseDTO dto = new TaskResponseDTO();
+        dto.setId(task.getId());
+        dto.setTitle(task.getTitle());
+        dto.setDescription(task.getDescription());
+        dto.setCompleted(task.isCompleted());
+        return dto;
+    }
 
-    public Task updateTask(Long id, Task updatedTask) {
-        Task existingTask = taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundException(id));
-        existingTask.setTitle(updatedTask.getTitle());
-        existingTask.setDescription(updatedTask.getDescription());
-        existingTask.setCompleted(updatedTask.isCompleted());
-        return taskRepository.save(existingTask);
+    private Task convertToEntity(TaskRequestDTO dto) {
+        Task task = new Task();
+        task.setTitle(dto.getTitle());
+        task.setDescription(dto.getDescription());
+        task.setCompleted(dto.isCompleted());
+        return task;
     }
 }
